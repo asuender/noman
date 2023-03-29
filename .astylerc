@@ -1,7 +1,7 @@
 --style=linux
 
 --indent=spaces=8
---max-code-length=80
+--max-code-length=60
 --break-after-logical
 --indent-namespaces
 
