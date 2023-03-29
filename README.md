@@ -31,6 +31,6 @@ noman -d ~/mynotes git
 
 We welcome any contributions to this library! If you want to contribute to this project, please take a look at the contributing guidelines to see how you can help.
 
-## LICENSE
+## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
