@@ -15,7 +15,7 @@ sudo make install
 
 ## Usage
 
-`noman` assumes you have a notes directory (it uses `~/.noman` by default). This directory stores all your notes and cheat sheets. Imagine you have a note called `git.md` of it, you can access it quickly by running:
+`noman` assumes you have a notes directory (it uses `~/.noman` by default). This directory stores all your notes and cheat sheets. Imagine you have a note called `git.md` inside that directory, you can access it quickly by running:
 
 ```bash
 noman git
