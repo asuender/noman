@@ -45,38 +45,42 @@ static void usage()
         "  -v, --version    output version information and exit\n");
 }
 
-static void search_note(char* dir_s, char*** file_list, char* pattern, int *fc, int recursive)
+static void search_note(char *dir_s, char ***file_list,
+                        char *pattern, int *fc, int recursive)
 {
-  char *d_name; char d_type; char sdir_s[PATH_MAX];
-  DIR *dirp = opendir(dir_s);
+    char *d_name;
+    char d_type;
+    char sdir_s[PATH_MAX];
+    DIR *dirp = opendir(dir_s);
 
-  struct dirent *entp;
+    struct dirent *entp;
 
-  while((entp = readdir(dirp)) != NULL)
-  {
-    d_name = entp->d_name;
-    d_type = entp->d_type;
-
-    if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
-        continue;
-
-    if (d_type == DT_DIR && recursive)
+    while((entp = readdir(dirp)) != NULL)
     {
-        sprintf(sdir_s, "%s/%s", dir_s, d_name);
-        search_note(sdir_s, file_list, pattern, fc, recursive);
-    }
+        d_name = entp->d_name;
+        d_type = entp->d_type;
 
-    else if(d_type == DT_REG && !fnmatch(pattern, d_name, 0))
-    {
-      *file_list = realloc(*file_list,
+        if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
+            continue;
+
+        if (d_type == DT_DIR && recursive)
+        {
+            sprintf(sdir_s, "%s/%s", dir_s, d_name);
+            search_note(sdir_s, file_list, pattern, fc, recursive);
+        }
+
+        else if(d_type == DT_REG && !fnmatch(pattern, d_name, 0))
+        {
+            *file_list = realloc(*file_list,
                                  sizeof(char *) * (*fc + 1));
-      (*file_list)[*fc] = malloc(strlen(dir_s) + strlen(d_name) + 2);
-      sprintf((*file_list)[*fc], "%s/%s", dir_s, d_name);
-      (*fc)++;
+            (*file_list)[*fc] = malloc(strlen(dir_s) + strlen(
+                                           d_name) + 2);
+            sprintf((*file_list)[*fc], "%s/%s", dir_s, d_name);
+            (*fc)++;
+        }
     }
-  }
 
-  closedir(dirp);
+    closedir(dirp);
 }
 
 static void view_note(FILE *notes_file)
@@ -192,7 +196,7 @@ int main(int argc, char **argv)
         free(file_list);
         exit(EXIT_FAILURE);
     }
-    
+
     strcpy(path, file_list[0]);
 
     fp = fopen(path, "r");
