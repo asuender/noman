@@ -18,15 +18,22 @@
 
 #define NOTES_DIR ".noman" /* default notes directory */
 
+static struct option long_options[] = {
+        {"dir", required_argument, 0, 'd'},
+        {"recursive", no_argument, 0, 'r'},
+        {"help", no_argument, 0, 'h'},
+        {0, 0, 0, 0}
+};
+
 static void usage()
 {
         printf(
                 "noman [OPTION]... [TOPIC]\n"
                 "A command-line tool for accessing personalized notes and cheat sheets instantly.\n\n"
                 "Options:\n"
-                "  -d dir  specify a custom notes directory\n"
-                "  -r      search recursively for notes\n"
-                "  -h      display this help and exit\n");
+                "  -d, --dir=DIR    specify a custom notes directory\n"
+                "  -r, --recursive  search recursively for notes\n"
+                "  -h, --help       display this help and exit\n");
 }
 
 static int find_note(char *dir_s, char ***file_list,
@@ -78,12 +85,18 @@ struct stat st = {0};
 
 int main(int argc, char **argv)
 {
-        int opt = 0, custom_dir = 0, recursive = 0;
+        int opt = 0, optidx = 0, custom_dir = 0, recursive = 0;
         char *dir_s;
 
-        while ((opt = getopt(argc, argv, ":d:rh")) != -1) {
+        while ((opt = getopt_long(argc, argv, ":d:rh", long_options,
+                                  &optidx)) != -1) {
                 switch (opt) {
                 case 'd':
+                        if (!strlen(optarg)) {
+                                fprintf(stderr,
+                                        "Error: Option --dir requires an argument.\n");
+                                exit(EXIT_FAILURE);
+                        }
                         custom_dir = 1;
                         dir_s = malloc(strlen(optarg) + 2);
                         strcpy(dir_s, optarg);
