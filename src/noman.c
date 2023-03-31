@@ -156,6 +156,7 @@ int main(int argc, char **argv)
     FILE *fp;
 
     char *note_s = argv[optind];
+    char pattern[strlen(note_s) + 6];
 
     pws = getpwuid(getuid());
     if (!custom_dir)
@@ -163,28 +164,23 @@ int main(int argc, char **argv)
         sprintf(dir_s, "%s/%s", pws->pw_dir, DEF_NOTES_DIR);
     }
 
-    char *pattern = malloc(strlen(note_s) + 6);
-    sprintf(pattern, "*%s*.md", note_s);
-
     if (stat(dir_s, &st) == -1)
     {
         fprintf(stderr, "Error: notes directory does not exist.\n");
-        free(pattern);
         exit(EXIT_FAILURE);
     }
 
     char **file_list = NULL;
     int nc = 0;
+    sprintf(pattern, "*%s*.md", note_s);
+    
     search_note(dir_s, &file_list, pattern, &nc, recursive);
-
-    free(pattern);
 
     if (!nc)
     {
         fprintf(stderr, "Error: no notes found.\n");
         for (int i = 0; i < nc; i++)
             free(file_list[i]);
-        free(file_list);
         exit(EXIT_FAILURE);
     }
 
