@@ -45,43 +45,38 @@ static void usage()
         "  -v, --version    output version information and exit\n");
 }
 
-static int find_note(char *dir_s, char ***file_list,
-                     char *pattern, int recursive)
+static void search_note(char* dir_s, char*** file_list, char* pattern, int *fc, int recursive)
 {
-    int fc = 0;
-    char *d_name;
-    unsigned char d_type;
-    DIR *dirp = opendir(dir_s);
+  char *d_name; char d_type; char sdir_s[PATH_MAX];
+  DIR *dirp = opendir(dir_s);
 
-    char path[PATH_MAX];
+  struct dirent *entp;
 
-    struct dirent *entp;
-    while ((entp = readdir(dirp)) != NULL)
+  while((entp = readdir(dirp)) != NULL)
+  {
+    d_name = entp->d_name;
+    d_type = entp->d_type;
+
+    if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
+        continue;
+
+    if (d_type == DT_DIR && recursive)
     {
-        d_name = entp->d_name;
-        d_type = entp->d_type;
-
-        if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
-            continue;
-
-        if (d_type == DT_DIR && recursive)
-        {
-            sprintf(path, "%s/%s", dir_s, d_name);
-            fc += find_note(path, file_list, pattern, recursive);
-        }
-        else if (d_type == DT_REG &&
-                 !fnmatch(pattern, d_name, 0))
-        {
-            *file_list = realloc(*file_list,
-                                 sizeof(char *) * (fc + 1));
-            (*file_list)[fc] = malloc(strlen(d_name) + 1);
-            strcpy((*file_list)[fc], d_name);
-            fc++;
-        }
+        sprintf(sdir_s, "%s/%s", dir_s, d_name);
+        search_note(sdir_s, file_list, pattern, fc, recursive);
     }
 
-    closedir(dirp);
-    return fc;
+    else if(d_type == DT_REG && !fnmatch(pattern, d_name, 0))
+    {
+      *file_list = realloc(*file_list,
+                                 sizeof(char *) * (*fc + 1));
+      (*file_list)[*fc] = malloc(strlen(dir_s) + strlen(d_name) + 2);
+      sprintf((*file_list)[*fc], "%s/%s", dir_s, d_name);
+      (*fc)++;
+    }
+  }
+
+  closedir(dirp);
 }
 
 static void view_note(FILE *notes_file)
@@ -100,7 +95,7 @@ struct stat st = {0};
 int main(int argc, char **argv)
 {
     int opt = 0, optidx = 0, custom_dir = 0, recursive = 0;
-    char dir_s[PATH_MAX];
+    char dir_s[PATH_MAX], path[PATH_MAX];
 
     while ((opt = getopt_long(argc, argv, ":d:rhv",
                               long_options,
@@ -175,7 +170,8 @@ int main(int argc, char **argv)
     }
 
     char **file_list = NULL;
-    int nc = find_note(dir_s, &file_list, pattern, recursive);
+    int nc = 0;
+    search_note(dir_s, &file_list, pattern, &nc, recursive);
 
     free(pattern);
 
@@ -196,10 +192,8 @@ int main(int argc, char **argv)
         free(file_list);
         exit(EXIT_FAILURE);
     }
-
-    char *path = malloc(strlen(dir_s) + strlen(
-                            file_list[0]) + 2);
-    sprintf(path, "%s/%s", dir_s, file_list[0]);
+    
+    strcpy(path, file_list[0]);
 
     fp = fopen(path, "r");
     if (fp == NULL)
@@ -218,7 +212,6 @@ int main(int argc, char **argv)
     for (int i = 0; i < nc; i++)
         free(file_list[i]);
     free(file_list);
-    free(path);
 
     return EXIT_SUCCESS;
 }
