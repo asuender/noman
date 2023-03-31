@@ -1,6 +1,6 @@
---style=linux
+--style=allman
 
---indent=spaces=8
+--indent=spaces=4
 --max-code-length=60
 --break-after-logical
 --indent-namespaces

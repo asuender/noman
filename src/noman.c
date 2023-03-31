@@ -19,68 +19,79 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define PROGRAM_NAME  "noman"
+#define VERSION       "0.1.0"
+
 #define DEF_NOTES_DIR ".noman" /* default notes directory */
 
-static struct option long_options[] = {
-        {"dir", required_argument, 0, 'd'},
-        {"recursive", no_argument, 0, 'r'},
-        {"help", no_argument, 0, 'h'},
-        {0, 0, 0, 0}
+static struct option long_options[] =
+{
+    {"dir", required_argument, 0, 'd'},
+    {"recursive", no_argument, 0, 'r'},
+    {"help", no_argument, 0, 'h'},
+    {"version", no_argument, 0, 'v'},
+    {0, 0, 0, 0}
 };
 
 static void usage()
 {
-        printf(
-                "noman [OPTION]... [TOPIC]\n"
-                "A command-line tool for accessing personalized notes and cheat sheets instantly.\n\n"
-                "Options:\n"
-                "  -d, --dir=DIR    specify a custom notes directory\n"
-                "  -r, --recursive  search recursively for notes\n"
-                "  -h, --help       display this help and exit\n");
+    printf(
+        "noman [OPTION]... [TOPIC]\n"
+        "A command-line tool for accessing personalized notes and cheat sheets instantly.\n\n"
+        "Options:\n"
+        "  -d, --dir=DIR    specify a custom notes directory\n"
+        "  -r, --recursive  search recursively for notes\n"
+        "  -h, --help       display this help and exit\n"
+        "  -v, --version    output version information and exit\n");
 }
 
 static int find_note(char *dir_s, char ***file_list,
                      char *pattern, int recursive)
 {
-        int fc = 0;
-        char *d_name;
-        unsigned char d_type;
-        DIR *dirp = opendir(dir_s);
+    int fc = 0;
+    char *d_name;
+    unsigned char d_type;
+    DIR *dirp = opendir(dir_s);
 
-        char path[PATH_MAX];
+    char path[PATH_MAX];
 
-        struct dirent *entp;
-        while ((entp = readdir(dirp)) != NULL) {
-                d_name = entp->d_name;
-                d_type = entp->d_type;
+    struct dirent *entp;
+    while ((entp = readdir(dirp)) != NULL)
+    {
+        d_name = entp->d_name;
+        d_type = entp->d_type;
 
-                if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
-                        continue;
+        if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
+            continue;
 
-                if (d_type == DT_DIR && recursive) {
-                        sprintf(path, "%s/%s", dir_s, d_name);
-                        fc += find_note(path, file_list, pattern, recursive);
-                } else if (d_type == DT_REG &&
-                           !fnmatch(pattern, d_name, 0)) {
-                        *file_list = realloc(*file_list,
-                                             sizeof(char *) * (fc + 1));
-                        (*file_list)[fc] = malloc(strlen(d_name) + 1);
-                        strcpy((*file_list)[fc], d_name);
-                        fc++;
-                }
+        if (d_type == DT_DIR && recursive)
+        {
+            sprintf(path, "%s/%s", dir_s, d_name);
+            fc += find_note(path, file_list, pattern, recursive);
         }
+        else if (d_type == DT_REG &&
+                 !fnmatch(pattern, d_name, 0))
+        {
+            *file_list = realloc(*file_list,
+                                 sizeof(char *) * (fc + 1));
+            (*file_list)[fc] = malloc(strlen(d_name) + 1);
+            strcpy((*file_list)[fc], d_name);
+            fc++;
+        }
+    }
 
-        closedir(dirp);
-        return fc;
+    closedir(dirp);
+    return fc;
 }
 
 static void view_note(FILE *notes_file)
 {
-        char buffer[1024];
+    char buffer[1024];
 
-        while (fgets(buffer, sizeof(buffer), notes_file)) {
-                printf("%s", buffer);
-        }
+    while (fgets(buffer, sizeof(buffer), notes_file))
+    {
+        printf("%s", buffer);
+    }
 }
 
 struct passwd *pws;
@@ -88,112 +99,126 @@ struct stat st = {0};
 
 int main(int argc, char **argv)
 {
-        int opt = 0, optidx = 0, custom_dir = 0, recursive = 0;
-        char dir_s[PATH_MAX];
+    int opt = 0, optidx = 0, custom_dir = 0, recursive = 0;
+    char dir_s[PATH_MAX];
 
-        while ((opt = getopt_long(argc, argv, ":d:rh", long_options,
-                                  &optidx)) != -1) {
-                switch (opt) {
-                case 'd':
-                        if (!strlen(optarg)) {
-                                fprintf(stderr,
-                                        "Error: Option --dir requires an argument.\n");
-                                exit(EXIT_FAILURE);
-                        }
-                        custom_dir = 1;
-                        strcpy(dir_s, optarg);
-                        break;
-
-                case 'r':
-                        recursive = 1;
-                        break;
-
-                case 'h':
-                        usage();
-                        exit(EXIT_SUCCESS);
-
-                case ':':
-                        if (optopt == 'd')
-                                fprintf(stderr,
-                                        "Error: Option -%c requires an argument.\n",
-                                        optopt);
-                        exit(EXIT_FAILURE);
-
-                case '?':
-                        fprintf(stderr, "Error: unknown option '-%c'.\n", optopt);
-                        exit(EXIT_FAILURE);
-
-                default:
-                        break;
-                }
-        }
-
-        if (optind >= argc) {
-                usage();
-                fprintf(stderr, "\nError: no topic specified.\n");
+    while ((opt = getopt_long(argc, argv, ":d:rhv",
+                              long_options,
+                              &optidx)) != -1)
+    {
+        switch (opt)
+        {
+        case 'd':
+            if (!strlen(optarg))
+            {
+                fprintf(stderr,
+                        "Error: Option --dir requires an argument.\n");
                 exit(EXIT_FAILURE);
+            }
+            custom_dir = 1;
+            strcpy(dir_s, optarg);
+            break;
+
+        case 'r':
+            recursive = 1;
+            break;
+
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
+
+        case 'v':
+            printf("%s\n", VERSION);
+            exit(EXIT_SUCCESS);
+
+        case ':':
+            if (optopt == 'd')
+                fprintf(stderr,
+                        "Error: Option -%c requires an argument.\n",
+                        optopt);
+            exit(EXIT_FAILURE);
+
+        case '?':
+            fprintf(stderr, "Error: unknown option '-%c'.\n", optopt);
+            exit(EXIT_FAILURE);
+
+        default:
+            break;
         }
+    }
 
-        FILE *fp;
+    if (optind >= argc)
+    {
+        usage();
+        fprintf(stderr, "\nError: no topic specified.\n");
+        exit(EXIT_FAILURE);
+    }
 
-        char *note_s = argv[optind];
+    FILE *fp;
 
-        pws = getpwuid(getuid());
-        if (!custom_dir) {
-                sprintf(dir_s, "%s/%s", pws->pw_dir, DEF_NOTES_DIR);
-        }
+    char *note_s = argv[optind];
 
-        char *pattern = malloc(strlen(note_s) + 6);
-        sprintf(pattern, "*%s*.md", note_s);
+    pws = getpwuid(getuid());
+    if (!custom_dir)
+    {
+        sprintf(dir_s, "%s/%s", pws->pw_dir, DEF_NOTES_DIR);
+    }
 
-        if (stat(dir_s, &st) == -1) {
-                fprintf(stderr, "Error: notes directory does not exist.\n");
-                free(pattern);
-                exit(EXIT_FAILURE);
-        }
+    char *pattern = malloc(strlen(note_s) + 6);
+    sprintf(pattern, "*%s*.md", note_s);
 
-        char **file_list = NULL;
-        int nc = find_note(dir_s, &file_list, pattern, recursive);
-
+    if (stat(dir_s, &st) == -1)
+    {
+        fprintf(stderr, "Error: notes directory does not exist.\n");
         free(pattern);
+        exit(EXIT_FAILURE);
+    }
 
-        if (!nc) {
-                fprintf(stderr, "Error: no notes found.\n");
-                for (int i = 0; i < nc; i++)
-                        free(file_list[i]);
-                free(file_list);
-                exit(EXIT_FAILURE);
-        }
+    char **file_list = NULL;
+    int nc = find_note(dir_s, &file_list, pattern, recursive);
 
-        if (nc > 1) {
-                fprintf(stderr, "Error: multiple notes found.\n");
-                for (int i = 0; i < nc; i++)
-                        free(file_list[i]);
-                free(file_list);
-                exit(EXIT_FAILURE);
-        }
+    free(pattern);
 
-        char *path = malloc(strlen(dir_s) + strlen(
-                                    file_list[0]) + 2);
-        sprintf(path, "%s/%s", dir_s, file_list[0]);
-
-        fp = fopen(path, "r");
-        if (fp == NULL) {
-                fprintf(stderr, "Error: could not open note file.\n");
-                for (int i = 0; i < nc; i++)
-                        free(file_list[i]);
-                free(file_list);
-                exit(EXIT_FAILURE);
-        }
-
-        view_note(fp);
-
-        fclose(fp);
-        
+    if (!nc)
+    {
+        fprintf(stderr, "Error: no notes found.\n");
         for (int i = 0; i < nc; i++)
-                free(file_list[i]);
+            free(file_list[i]);
         free(file_list);
-        free(path);
+        exit(EXIT_FAILURE);
+    }
 
-        return EXIT_SUCCESS;
+    if (nc > 1)
+    {
+        fprintf(stderr, "Error: multiple notes found.\n");
+        for (int i = 0; i < nc; i++)
+            free(file_list[i]);
+        free(file_list);
+        exit(EXIT_FAILURE);
+    }
+
+    char *path = malloc(strlen(dir_s) + strlen(
+                            file_list[0]) + 2);
+    sprintf(path, "%s/%s", dir_s, file_list[0]);
+
+    fp = fopen(path, "r");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error: could not open note file.\n");
+        for (int i = 0; i < nc; i++)
+            free(file_list[i]);
+        free(file_list);
+        exit(EXIT_FAILURE);
+    }
+
+    view_note(fp);
+
+    fclose(fp);
+
+    for (int i = 0; i < nc; i++)
+        free(file_list[i]);
+    free(file_list);
+    free(path);
+
+    return EXIT_SUCCESS;
 }
