@@ -1,3 +1,7 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -8,10 +12,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-#define NOTES_DIR ".noman"
+#define NOTES_DIR ".noman" /* default notes directory */
 
 static void usage()
 {
@@ -20,8 +25,43 @@ static void usage()
                 "A command-line tool for accessing personalized notes and cheat sheets instantly.\n\n"
                 "Options:\n"
                 "  -d dir  specify a custom notes directory\n"
-                "  -h      display this help and exit\n"
-        );
+                "  -r      search recursively for notes\n"
+                "  -h      display this help and exit\n");
+}
+
+static int find_note(char *dir_s, char ***file_list,
+                     char *pattern, int recursive)
+{
+        int fc = 0;
+        char *d_name;
+        unsigned char d_type;
+        DIR *dirp = opendir(dir_s);
+
+        struct dirent *entp;
+        while ((entp = readdir(dirp)) != NULL) {
+                d_name = entp->d_name;
+                d_type = entp->d_type;
+
+                if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
+                        continue;
+
+                if (d_type == DT_DIR && recursive) {
+                        char *path = malloc(strlen(dir_s) + strlen(d_name) + 2);
+                        sprintf(path, "%s%s/", dir_s, d_name);
+                        fc += find_note(path, file_list, pattern, recursive);
+                        free(path);
+                } else if (d_type == DT_REG &&
+                           !fnmatch(pattern, d_name, 0)) {
+                        *file_list = realloc(*file_list,
+                                             sizeof(char *) * (fc + 1));
+                        (*file_list)[fc] = malloc(strlen(d_name) + 1);
+                        strcpy((*file_list)[fc], d_name);
+                        fc++;
+                }
+        }
+
+        closedir(dirp);
+        return fc;
 }
 
 static void view_note(FILE *notes_file)
@@ -34,17 +74,25 @@ static void view_note(FILE *notes_file)
 }
 
 struct passwd *pws;
+struct stat st = {0};
 
 int main(int argc, char **argv)
 {
-        int opt = 0, custom_dir = 0;
+        int opt = 0, custom_dir = 0, recursive = 0;
         char *dir_s;
 
-        while((opt = getopt(argc, argv, ":d:h")) != -1) {
-                switch(opt) {
+        while ((opt = getopt(argc, argv, ":d:rh")) != -1) {
+                switch (opt) {
                 case 'd':
                         custom_dir = 1;
-                        dir_s = optarg;
+                        dir_s = malloc(strlen(optarg) + 2);
+                        strcpy(dir_s, optarg);
+                        if (optarg[strlen(optarg) - 1] != '/')
+                                strcat(dir_s, "/");
+                        break;
+
+                case 'r':
+                        recursive = 1;
                         break;
 
                 case 'h':
@@ -53,9 +101,9 @@ int main(int argc, char **argv)
 
                 case ':':
                         if (optopt == 'd')
-                                fprintf (stderr,
-                                         "Error: Option -%c requires an argument.\n",
-                                         optopt);
+                                fprintf(stderr,
+                                        "Error: Option -%c requires an argument.\n",
+                                        optopt);
                         exit(EXIT_FAILURE);
 
                 case '?':
@@ -70,12 +118,12 @@ int main(int argc, char **argv)
         if (optind >= argc) {
                 usage();
                 fprintf(stderr, "\nError: no topic specified.\n");
+                free(dir_s);
                 exit(EXIT_FAILURE);
         }
 
-        DIR *dirp;
-
         FILE *fp;
+
         char *note_s = argv[optind];
 
         pws = getpwuid(getuid());
@@ -87,38 +135,33 @@ int main(int argc, char **argv)
         char *pattern = malloc(strlen(note_s) + 6);
         sprintf(pattern, "*%s*.md", note_s);
 
-        dirp = opendir(dir_s);
-        if (errno == ENOENT) {
+        if (stat(dir_s, &st) == -1) {
                 fprintf(stderr, "Error: notes directory does not exist.\n");
+                free(dir_s);
                 free(pattern);
                 exit(EXIT_FAILURE);
         }
 
-        int num_files = 0;
-        char **file_list;
-        struct dirent *entry;
-        while ((entry = readdir(dirp)) != NULL) {
-                if (fnmatch(pattern, entry->d_name, 0) == 0) {
-                        file_list = realloc(file_list,
-                                            sizeof(char *) * (num_files + 1));
-                        file_list[num_files] = malloc(strlen(entry->d_name) + 1);
-                        strcpy(file_list[num_files], entry->d_name);
-                        num_files++;
-                }
-        }
+        char **file_list = NULL;
+        int nc = find_note(dir_s, &file_list, pattern, recursive);
 
-        closedir(dirp);
         free(pattern);
 
-        if(!num_files) {
-                if (!custom_dir)
-                        free(dir_s);
+        if (!nc) {
+                fprintf(stderr, "Error: no notes found.\n");
+                free(dir_s);
+                for (int i = 0; i < nc; i++)
+                        free(file_list[i]);
                 free(file_list);
                 exit(EXIT_FAILURE);
         }
 
-        else if (num_files > 1) {
+        if (nc > 1) {
                 fprintf(stderr, "Error: multiple notes found.\n");
+                free(dir_s);
+                for (int i = 0; i < nc; i++)
+                        free(file_list[i]);
+                free(file_list);
                 exit(EXIT_FAILURE);
         }
 
@@ -127,11 +170,11 @@ int main(int argc, char **argv)
         sprintf(path, "%s/%s", dir_s, file_list[0]);
 
         fp = fopen(path, "r");
-
         if (fp == NULL) {
                 fprintf(stderr, "Error: could not open note file.\n");
-                if (!custom_dir)
-                        free(dir_s);
+                free(dir_s);
+                for (int i = 0; i < nc; i++)
+                        free(file_list[i]);
                 free(file_list);
                 exit(EXIT_FAILURE);
         }
@@ -140,9 +183,8 @@ int main(int argc, char **argv)
 
         fclose(fp);
 
-        if (!custom_dir)
-                free(dir_s);
-        for (int i = 0; i < num_files; i++)
+        free(dir_s);
+        for (int i = 0; i < nc; i++)
                 free(file_list[i]);
         free(file_list);
         free(path);

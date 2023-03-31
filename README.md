@@ -27,6 +27,12 @@ Or by using a custom notes directory:
 noman -d ~/mynotes git
 ```
 
+To use recursive search, use the `-r` flag:
+
+```bash
+noman -r git
+```
+
 ## Contributing
 
 We welcome any contributions to this library! If you want to contribute to this project, please take a look at the contributing guidelines to see how you can help.
