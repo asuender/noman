@@ -203,24 +203,20 @@ int main(int argc, char **argv)
 
     strcpy(path, file_list[0]);
 
+    for (int i = 0; i < nc; i++)
+        free(file_list[i]);
+    free(file_list);
+
     fp = fopen(path, "r");
     if (fp == NULL)
     {
         /* TODO: change error messages */
         perror("Error: could not open note file");
-        for (int i = 0; i < nc; i++)
-            free(file_list[i]);
-        free(file_list);
         exit(EXIT_FAILURE);
     }
 
     view_note(fp);
-
     fclose(fp);
-
-    for (int i = 0; i < nc; i++)
-        free(file_list[i]);
-    free(file_list);
 
     return EXIT_SUCCESS;
 }
