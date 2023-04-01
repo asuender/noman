@@ -58,9 +58,12 @@ static void search_note(char *dir_s, char ***file_list,
     char *d_name;
     char d_type;
     char sdir_s[PATH_MAX];
-    DIR *dirp = opendir(dir_s);
 
+    DIR *dirp = opendir(dir_s);
     struct dirent *entp;
+
+    if (dirp == NULL)
+        return;
 
     while((entp = readdir(dirp)) != NULL)
     {
@@ -173,14 +176,28 @@ int main(int argc, char **argv)
 
     if (stat(dir_s, &st) == -1)
     {
-        fprintf(stderr, "Error: notes directory does not exist.\n");
+        switch (errno)
+        {
+        case EACCES:
+            fprintf(stderr, "Error: permission denied.\n");
+            break;
+
+        case ENOENT:
+            fprintf(stderr, "Error: notes directory does not exist.\n");
+            break;
+
+        default:
+            fprintf(stderr, "Error: could not open notes directory.\n");
+            break;
+        }
+
         exit(EXIT_FAILURE);
     }
 
     char **file_list = NULL;
     int nc = 0;
     sprintf(pattern, "*%s*.md", note_s);
-    
+
     search_note(dir_s, &file_list, pattern, &nc, recursive);
 
     if (!nc)
