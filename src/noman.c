@@ -206,7 +206,8 @@ int main(int argc, char **argv)
     fp = fopen(path, "r");
     if (fp == NULL)
     {
-        fprintf(stderr, "Error: could not open note file.\n");
+        /* TODO: change error messages */
+        perror("Error: could not open note file");
         for (int i = 0; i < nc; i++)
             free(file_list[i]);
         free(file_list);
