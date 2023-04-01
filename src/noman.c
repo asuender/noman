@@ -176,21 +176,8 @@ int main(int argc, char **argv)
 
     if (stat(dir_s, &st) == -1)
     {
-        switch (errno)
-        {
-        case EACCES:
-            fprintf(stderr, "Error: permission denied.\n");
-            break;
-
-        case ENOENT:
-            fprintf(stderr, "Error: notes directory does not exist.\n");
-            break;
-
-        default:
-            fprintf(stderr, "Error: could not open notes directory.\n");
-            break;
-        }
-
+        /* TODO: change error messages */
+        perror(dir_s);
         exit(EXIT_FAILURE);
     }
 
