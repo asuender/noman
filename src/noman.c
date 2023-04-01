@@ -1,8 +1,12 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
-
-#define _POSIX_C_SOURCE 1
+#if defined(__arm__) || defined(__i386__)
+#define _FILE_OFFSET_BITS 64
+#endif
+#if defined(__APPLE__)
+#define _DARWIN_C_SOURCE
+#endif
 
 #include <ctype.h>
 #include <dirent.h>
@@ -15,6 +19,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __APPLE__
+#include <sys/dirent.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
