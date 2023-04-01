@@ -40,7 +40,7 @@ static struct option long_options[] =
     {0, 0, 0, 0}
 };
 
-static void usage()
+static void usage(int status)
 {
     printf(
         "noman [OPTION]... [TOPIC]\n"
@@ -50,6 +50,8 @@ static void usage()
         "  -r, --recursive  search recursively for notes\n"
         "  -h, --help       display this help and exit\n"
         "  -v, --version    output version information and exit\n");
+
+    exit(status);
 }
 
 static void search_note(char *dir_s, char ***file_list,
@@ -133,8 +135,7 @@ int main(int argc, char **argv)
             break;
 
         case 'h':
-            usage();
-            exit(EXIT_SUCCESS);
+            usage(EXIT_SUCCESS);
 
         case 'v':
             printf("%s\n", VERSION);
@@ -157,11 +158,7 @@ int main(int argc, char **argv)
     }
 
     if (optind >= argc)
-    {
-        usage();
-        fprintf(stderr, "\nError: no topic specified.\n");
-        exit(EXIT_FAILURE);
-    }
+        usage(EXIT_FAILURE);
 
     FILE *fp;
 
